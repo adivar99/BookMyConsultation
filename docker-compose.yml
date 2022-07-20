@@ -1,0 +1,106 @@
+version: '3.3'
+
+services:
+  doctor:
+    build: doctorservice
+    container_name: doctorService
+    image: book_my_consultation/doctorservice:1.0.0
+    ports:
+     - "8081:8081"
+    environment:
+      MONGO_HOST: mongodb+srv://admin:admin123@cluster0.qkt5l.mongodb.net/?retryWrites=true&w=majority
+    depends_on:
+      - notification
+    networks:
+      - app-tier
+  user:
+    build: userservice
+    container_name: userService
+    image: book_my_consultation/userservice:1.0.0
+    ports:
+     - "8082:8082"
+    environment:
+      MONGO_HOST: mongodb+srv://admin:admin123@cluster0.qkt5l.mongodb.net/?retryWrites=true&w=majority
+    depends_on:
+      - notification
+      - doctor
+    networks:
+      - app-tier
+  appointment:
+    build: appointmentservice
+    container_name: appointmentService
+    image: book_my_consultation/appointmentservice:1.0.0
+    ports:
+     - "8083:8083"
+    environment:
+      MYSQL_HOST: book-my-consultation.c4zicvaqizuv.us-east-1.rds.amazonaws.com
+      MONGO_HOST: mongodb+srv://admin:admin123@cluster0.qkt5l.mongodb.net/?retryWrites=true&w=majority
+    depends_on:
+      - notification
+      - doctor
+      - user
+    networks:
+      - app-tier
+  payment:
+    build: paymentservice
+    container_name: paymentService
+    image: book_my_consultation/paymentservice:1.0.0
+    ports:
+     - "8084:8084"
+    depends_on:
+      - appointment
+      - notification
+    networks:
+      - app-tier
+  rating:
+    build: ratingservice
+    container_name: ratingService
+    image: book_my_consultation/ratingservice:1.0.0
+    ports:
+     - "8085:8085"
+    environment:
+      MONGO_HOST: mongodb+srv://admin:admin123@cluster0.qkt5l.mongodb.net/?retryWrites=true&w=majority
+    depends_on:
+      - appointment
+      - payment
+      - notification
+    networks:
+      - app-tier
+  notification:
+    build: notificationservice
+    container_name: notificationService
+    image: book_my_consultation/notificationservice:1.0.0
+    depends_on:
+      - kafka
+      - zookeeper
+    networks:
+      - app-tier
+  kafka:
+    image: 'bitnami/kafka:latest'
+    ports:
+      - "9092:9092"
+    volumes:
+      - "./kafka_data:/bitnami"
+    environment:
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    depends_on:
+      - zookeeper
+    networks:
+      - app-tier
+  zookeeper:
+    image: 'bitnami/zookeeper:latest'
+    volumes:
+      - "./zookeeper_data:/bitnami"
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - app-tier
+
+networks:
+  app-tier:
+    driver: bridge
