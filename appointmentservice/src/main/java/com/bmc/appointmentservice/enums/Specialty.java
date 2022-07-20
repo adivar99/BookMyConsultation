@@ -1,5 +1,5 @@
 package com.bmc.appointmentservice.enums;
 
 public enum Specialty {
-    GENERAL_PHYSICIAN, DENTIST
+    GENERAL_PHYSICIAN, DENTIST, VETERINARIAN
 }

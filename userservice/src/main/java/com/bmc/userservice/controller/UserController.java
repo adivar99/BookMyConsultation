@@ -56,7 +56,8 @@ public class UserController {
             errorFields.add("Email Id");
             validated = false;
         }
-        String dateRegex = "^[0-3]?[0-9]-[0-3]?[0-9]-(?:[0-9]{2})?[0-9]{2}$";
+        String dateRegex = "^(?:[0-9]{2})?[0-9]{2}-[0-3]?[0-9]-[0-3]?[0-9]$";
+        String dateRegex1 = "^[0-3]?[0-9]-[0-3]?[0-9]-(?:[0-9]{2})?[0-9]{2}$";
         if (!newUser.getDob().matches(dateRegex)) {
             errorFields.add("Date of Birth");
             validated = false;

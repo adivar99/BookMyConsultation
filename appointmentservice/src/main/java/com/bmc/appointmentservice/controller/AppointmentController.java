@@ -17,6 +17,7 @@ import com.bmc.appointmentservice.service.AvailabilityService;
 import com.bmc.appointmentservice.service.PrescriptionService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -45,10 +46,16 @@ public class AppointmentController {
     @Autowired
     RestTemplate restTemplate;
 
+    @Value("${url.service.doctor}")
+    private String doctorServiceUrl;
+
+    @Value("${url.service.doctor1}")
+    private String doctorServiceUrl1;
+
     @PostMapping("/doctor/{doctorId}/availability")
     public ResponseEntity setAvailability(@PathVariable(value = "doctorId") String doctorId, @RequestBody Map<String, Map<String, List<String>>> availabilityMapDTO) throws ParseException {
         // Check and get doctor details
-        DoctorDTO savedDoctor = restTemplate.getForObject("http://localhost:8081/doctors/"+doctorId, DoctorDTO.class);
+        DoctorDTO savedDoctor = restTemplate.getForObject(doctorServiceUrl+"/doctors/"+doctorId, DoctorDTO.class);
 
         if (savedDoctor == null) {
             ErrorModel err = new ErrorModel(ErrorCodes.ERR_RESOURCE_NOT_FOUND, "Doctor with id ["+doctorId+"] not found", null);
@@ -74,7 +81,7 @@ public class AppointmentController {
     @GetMapping("/doctor/{doctorId}/availability")
     public ResponseEntity getAvailability(@PathVariable(value = "doctorId") String doctorId) throws ParseException {
         // Check and get doctor details
-        DoctorDTO savedDoctor = restTemplate.getForObject("http://localhost:8081/doctors/"+doctorId, DoctorDTO.class);
+        DoctorDTO savedDoctor = restTemplate.getForObject(doctorServiceUrl1+"/doctors/"+doctorId, DoctorDTO.class);
 
         if (savedDoctor == null) {
             ErrorModel err = new ErrorModel(ErrorCodes.ERR_RESOURCE_NOT_FOUND, "Doctor with id ["+doctorId+"] not found", null);

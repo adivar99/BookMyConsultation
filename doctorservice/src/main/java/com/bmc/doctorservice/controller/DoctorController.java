@@ -178,6 +178,7 @@ public class DoctorController {
     /**
      * API #5
      *
+     * TODO: Order by rating
      * @param status    status of doctors
      * @param specialty specialty of doctors
      * @return list of doctors with the above parameters
