@@ -12,6 +12,7 @@ import com.bmc.appointmentservice.exception.ResourceNotFoundException;
 import com.bmc.appointmentservice.model.Appointment;
 import com.bmc.appointmentservice.model.Availability;
 import com.bmc.appointmentservice.model.Prescription;
+import com.bmc.appointmentservice.producer.KafkaMessageProducer;
 import com.bmc.appointmentservice.service.AppointmentService;
 import com.bmc.appointmentservice.service.AvailabilityService;
 import com.bmc.appointmentservice.service.PrescriptionService;
@@ -24,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -39,6 +41,9 @@ public class AppointmentController {
 
     @Autowired
     PrescriptionService prescriptionService;
+
+    @Autowired
+    KafkaMessageProducer kafkaMessageProducer;
 
     @Autowired
     ModelMapper modelMapper;
@@ -96,7 +101,7 @@ public class AppointmentController {
     }
 
     @PostMapping("/appointments")
-    public ResponseEntity createAppointment(@RequestBody AppointmentDTO appointmentDTO) throws ParseException {
+    public ResponseEntity createAppointment(@RequestBody AppointmentDTO appointmentDTO) throws ParseException, IOException {
         boolean found = false;
         Date newDate = new SimpleDateFormat("yyyy-MM-dd").parse(appointmentDTO.getAppointment_date());
         Appointment newAppointment = modelMapper.map(appointmentDTO, Appointment.class);
@@ -141,7 +146,9 @@ public class AppointmentController {
 
         Appointment savedAppointment = appointmentService.saveAppointmentDetails(newAppointment);
 
-        // TODO: Implement kafka here
+        String message = "Appointment has been set with doctor "+savedAppointment.getDoctor_name() + " On "+ savedAppointment.getAppointment_date() + " at "+ savedAppointment.getTime_slot();
+        kafkaMessageProducer.publish("message", "setAppointment", message);
+
 
         return new ResponseEntity<String>(savedAppointment.getAppointment_id(), HttpStatus.OK);
     }
@@ -168,7 +175,7 @@ public class AppointmentController {
     }
 
     @PostMapping("/prescriptions")
-    public ResponseEntity createPrescription(@RequestBody PrescriptionDTO prescriptionDTO) {
+    public ResponseEntity createPrescription(@RequestBody PrescriptionDTO prescriptionDTO) throws IOException {
 
 
         Prescription newPrescription = modelMapper.map(prescriptionDTO, Prescription.class);
@@ -184,12 +191,13 @@ public class AppointmentController {
             return new ResponseEntity<>(err, HttpStatus.BAD_REQUEST);
         }
         if (savedAppointment.getStatus() == AppointmentStatus.CONFIRMED) {
-            prescriptionService.acceptPrescriptionDetails(newPrescription);
+            Prescription savedPrescription = prescriptionService.acceptPrescriptionDetails(newPrescription);
 
-            // TODO: Implement kafka here
+            String message = "Prescription has been created for "+savedAppointment.getUser_name()+". The details are given below: \n"+savedPrescription.toString();
+            kafkaMessageProducer.publish("message", "prescription", message);
             return new ResponseEntity<>(null, HttpStatus.OK);
         }
-        return new ResponseEntity(null, HttpStatus.NOT_IMPLEMENTED);
+        return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
     }
 
     @PutMapping(value = "/appointment/{appointmentId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

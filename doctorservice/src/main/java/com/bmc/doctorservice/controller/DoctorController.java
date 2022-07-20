@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -93,7 +94,7 @@ public class DoctorController {
         } else {
             ErrorModel error = new ErrorModel(ErrorCodes.ERR_INVALID_INPUT, "Invalid Input. Parameter name",
                     errorFields);
-            return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<ErrorModel>(error, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -106,10 +107,9 @@ public class DoctorController {
      * @return
      */
     @PostMapping(value = "/{doctorId}/document", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity submitDoctor(@PathVariable(name = "doctorId") String doctorId,
-            @RequestBody DoctorDTO doctorDTO) {
+    public ResponseEntity submitDoctor(@PathVariable(name = "doctorId") String doctorId) {
         Doctor newDoctor = modelMapper.map(doctorDTO, Doctor.class);
-        return new ResponseEntity(null, HttpStatus.NOT_IMPLEMENTED);
+        return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
     }
 
     /**
@@ -118,9 +118,10 @@ public class DoctorController {
      * @param doctorId Id of doctor to approve
      * @param doctorDTO approver details
      * @return Doctor details
+     * @throws IOException
      */
     @PutMapping(value="/{doctorId}/approve", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity approveDoctor(@PathVariable(name = "doctorId") String doctorId, @RequestBody DoctorDTO doctorDTO) {
+    public ResponseEntity approveDoctor(@PathVariable(name = "doctorId") String doctorId, @RequestBody DoctorDTO doctorDTO) throws IOException {
         try {
             doctorService.getDoctorDetails(doctorId);
         } catch(ResourceNotFoundException e) {
@@ -143,17 +144,19 @@ public class DoctorController {
         System.out.println("Saved Doctor: "+savedDoctor);
         DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
-        // TODO: implement notification functions here
+        String message = "Dr. "+savedDoctor.getLastName()+" has been approved. Please find the details below: \n"+savedDoctor.toString();
+        kafkaMessageProducer.publish("message", "doctorApproval", message);
 
         return new ResponseEntity<>(savedDoctorDTO, HttpStatus.OK);
     }
 
     /**
      * API #4
+     * @throws IOException
      */
     @PutMapping(value = "/{doctorId}/reject", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity rejectDoctor(@PathVariable(name = "doctorId") String doctorId,
-            @RequestBody DoctorDTO doctorDTO) {
+            @RequestBody DoctorDTO doctorDTO) throws IOException {
         if (doctorService.getDoctorDetails(doctorId) == null) {
             ErrorModel errorModel = new ErrorModel(ErrorCodes.ERR_RESOURCE_NOT_FOUND,
                     "Requested resource is not available", null);
@@ -170,7 +173,8 @@ public class DoctorController {
         Doctor savedDoctor = doctorService.updateDoctorDetails(doctorId, updateDoctor);
         DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
-        // TODO: implement notification functions here
+        String message = "Dr. "+savedDoctor.getLastName()+" has been rejected. Please find the details below: \n"+savedDoctor.toString();
+        kafkaMessageProducer.publish("message", "doctorApproval", message);
 
         return new ResponseEntity<>(savedDoctorDTO, HttpStatus.OK);
     }
@@ -233,7 +237,7 @@ public class DoctorController {
      */
     @GetMapping(value = "{doctorId}/documents/metadata")
     public ResponseEntity getDoctorDocuments(@PathVariable(name = "doctorId") String doctorId) {
-        return new ResponseEntity(null, HttpStatus.NOT_IMPLEMENTED);
+        return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
     }
 
     /**
@@ -246,7 +250,7 @@ public class DoctorController {
     @GetMapping(value = "{doctorId}/documents/{documentName}")
     public ResponseEntity getDoctorDownload(@PathVariable(name = "doctorId") String doctorId,
             @PathVariable(name = "documentName") String documentName) {
-        return new ResponseEntity(null, HttpStatus.NOT_IMPLEMENTED);
+        return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
     }
 
     public boolean validateDate(String date) {
