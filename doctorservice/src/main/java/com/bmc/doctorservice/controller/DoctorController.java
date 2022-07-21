@@ -107,8 +107,8 @@ public class DoctorController {
      * @return
      */
     @PostMapping(value = "/{doctorId}/document", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity submitDoctor(@PathVariable(name = "doctorId") String doctorId) {
-        Doctor newDoctor = modelMapper.map(doctorDTO, Doctor.class);
+    public ResponseEntity submitDoctor(@PathVariable(name = "doctorId") String doctorId,) {
+        // Doctor newDoctor = modelMapper.map(doctorDTO, Doctor.class);
         return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
     }
 
