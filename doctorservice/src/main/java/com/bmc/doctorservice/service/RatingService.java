@@ -1,6 +1,6 @@
-package com.bmc.ratingservice.service;
+package com.bmc.doctorservice.service;
 
-import com.bmc.ratingservice.model.Rating;
+import com.bmc.doctorservice.model.Rating;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

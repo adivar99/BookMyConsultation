@@ -6,6 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
 
+import com.amazonaws.services.s3.model.ObjectMetadata;
+
 @SpringBootApplication
 public class DoctorserviceApplication {
 
@@ -20,4 +22,9 @@ public class DoctorserviceApplication {
 
 	@Bean
 	public RestTemplate getRestTemplate() { return new RestTemplate(); }
+
+	@Bean
+    ObjectMetadata objectMetadata() {
+        return new ObjectMetadata();
+    }
 }

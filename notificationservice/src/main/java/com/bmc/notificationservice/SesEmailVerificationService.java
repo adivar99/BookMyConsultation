@@ -10,6 +10,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
+import com.bmc.notificationservice.Doctor;
 
 import javax.annotation.PostConstruct;
 import javax.mail.Message;
@@ -54,12 +55,12 @@ public class SesEmailVerificationService {
         sesClient.verifyEmailAddress(req->req.emailAddress(emailId));
     }
 
-    public void sendEmail(User user) throws IOException, TemplateException, MessagingException {
+    public void sendEmail(Doctor doctor) throws IOException, TemplateException, MessagingException {
         Map<String,Object> templateModel = new HashMap<>();
-        templateModel.put("user",user);
+        templateModel.put("doctor",doctor);
         Template freeMarkerTemplate = configurer.getConfiguration().getTemplate("userwelcome.ftl");
         String htmlBody = FreeMarkerTemplateUtils.processTemplateIntoString(freeMarkerTemplate,templateModel);
-        sendSimpleMessage(user.getEmailId(),"Welcome Email",htmlBody);
+        sendSimpleMessage(doctor.getEmailId(),"Welcome Email",htmlBody);
     }
 
     private void sendSimpleMessage(String toEmail, String subject, String body) throws MessagingException {

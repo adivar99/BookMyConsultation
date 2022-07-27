@@ -27,7 +27,7 @@ public class DoctorServiceImpl implements DoctorService{
         if (doc.isPresent()) {
             return doc.get();
         } else {
-            throw new ResourceNotFoundException(ErrorCodes.ERR_RESOURCE_NOT_FOUND, "Requested resource is not available", null);
+            throw new ResourceNotFoundException();
         }
     }
 

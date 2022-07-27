@@ -1,9 +1,9 @@
-package com.bmc.ratingservice.service;
+package com.bmc.doctorservice.service;
 
-import com.bmc.ratingservice.exception.ResourceNotFoundException;
-import com.bmc.ratingservice.dao.RatingDAO;
+import com.bmc.doctorservice.exceptions.ResourceNotFoundException;
+import com.bmc.doctorservice.dao.RatingDAO;
 
-import com.bmc.ratingservice.model.Rating;
+import com.bmc.doctorservice.model.Rating;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +35,7 @@ public class RatingServiceImpl implements RatingService {
     public List<Rating> getRatingsByDoctor(String doctorId) {
         List<Rating> allRatings = getAllRating();
         List<Rating> res = new ArrayList<>();
+        System.out.println("ALL Ratings:"+allRatings.toString());
         for (Rating rating : allRatings) {
             if(rating.getDoctorId() == doctorId) {
                 res.add(rating);

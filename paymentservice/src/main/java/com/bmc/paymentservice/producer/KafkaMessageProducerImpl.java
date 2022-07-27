@@ -1,4 +1,4 @@
-package com.bmc.appointmentservice.producer;
+package com.bmc.paymentservice.producer;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
