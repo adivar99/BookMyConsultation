@@ -13,7 +13,7 @@ public class KafkaMessageProducerImpl implements KafkaMessageProducer{
     @Override
     public void publish(String topic, String key, String value) throws IOException {
         Properties properties = new Properties();
-        properties.put("bootstrap.servers","${KAFKA-HOST}:9092");
+        properties.put("bootstrap.servers","ec2-3-87-198-243.compute-1.amazonaws.com:9092");
         properties.put("acks","all");
         properties.put("retries", 0);
         properties.put("linger.ms",0);
@@ -26,8 +26,9 @@ public class KafkaMessageProducerImpl implements KafkaMessageProducer{
         properties.put("retry.backoff.ms",5);
 
         Producer<String, String> producer = new KafkaProducer<String, String>(properties);
-        System.out.println(producer.metrics());
+        // System.out.println(producer.metrics());
 
         producer.send(new ProducerRecord<String, String>(topic, key, value));
+        producer.close();
     }
 }

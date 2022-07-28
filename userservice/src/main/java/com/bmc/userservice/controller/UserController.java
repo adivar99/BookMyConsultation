@@ -4,6 +4,7 @@ import com.bmc.userservice.dto.UserDTO;
 import com.bmc.userservice.enums.ErrorCodes;
 import com.bmc.userservice.exceptions.ErrorModel;
 import com.bmc.userservice.model.User;
+import com.bmc.userservice.producer.KafkaMessageProducer;
 import com.bmc.userservice.service.UserService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -23,6 +25,9 @@ public class UserController {
     UserService userService;
 
     @Autowired
+    private KafkaMessageProducer kafkaMessageProducer;
+
+    @Autowired
     ModelMapper modelMapper;
 
     @Autowired
@@ -32,9 +37,10 @@ public class UserController {
      * API #1
      * @param userDTO User details to save
      * @return saved User details
+     * @throws IOException
      */
     @PostMapping()
-    public ResponseEntity createUser(@RequestBody UserDTO userDTO) {
+    public ResponseEntity createUser(@RequestBody UserDTO userDTO) throws IOException {
         User newUser = modelMapper.map(userDTO, User.class);
 
         boolean validated = true;
@@ -72,6 +78,8 @@ public class UserController {
             UserDTO savedUserDTO = modelMapper.map(savedUser, UserDTO.class);
 
             // TODO: Implement notification function here
+            String message = " User"+savedUser.getLastName()+" has been created. Please find the details below: \n"+savedUser.toString();
+            kafkaMessageProducer.publish("message", "userCreate", message);
 
             return new ResponseEntity<>(savedUserDTO, HttpStatus.CREATED);
         } else {

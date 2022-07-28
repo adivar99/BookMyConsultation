@@ -2,13 +2,17 @@ package com.bmc.doctorservice.controller;
 
 import com.bmc.doctorservice.exceptions.ResourceNotFoundException;
 import com.bmc.doctorservice.dto.DoctorDTO;
+import com.bmc.doctorservice.dto.RatingDTO;
 import com.bmc.doctorservice.enums.ErrorCodes;
 import com.bmc.doctorservice.enums.Status;
 import com.bmc.doctorservice.model.Doctor;
+import com.bmc.doctorservice.model.Rating;
 import com.bmc.doctorservice.exceptions.ErrorModel;
 import com.bmc.doctorservice.enums.Specialty;
 import com.bmc.doctorservice.producer.KafkaMessageProducer;
 import com.bmc.doctorservice.service.DoctorServiceImpl;
+import com.bmc.doctorservice.service.RatingService;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,14 +42,18 @@ public class DoctorController {
     @Autowired
     RestTemplate restTemplate;
 
+    @Autowired
+    RatingService ratingService;
+
     /**
      * API #1
      * 
      * @param doctorDTO doctor details
      * @return saved doctor details
+     * @throws IOException
      */
     @PostMapping(value = "/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity createDoctor(@RequestBody DoctorDTO doctorDTO) {
+    public ResponseEntity createDoctor(@RequestBody DoctorDTO doctorDTO) throws IOException {
         Doctor newDoctor = modelMapper.map(doctorDTO, Doctor.class);
 
         boolean validated = true;
@@ -87,13 +96,14 @@ public class DoctorController {
             Doctor savedDoctor = doctorService.acceptDoctorDetails(newDoctor);
             DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
-            // TODO: Implement notification function here
+            String message = "Dr."+savedDoctor.getLastName()+" has been created. Please find the details below: \n"+savedDoctor.toString();
+            kafkaMessageProducer.publish("message", "doctorCreate", message);
 
             return new ResponseEntity<>(savedDoctorDTO, HttpStatus.CREATED);
         } else {
             ErrorModel error = new ErrorModel(ErrorCodes.ERR_INVALID_INPUT, "Invalid Input. Parameter name",
                     errorFields);
-            return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<ErrorModel>(error, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -102,14 +112,12 @@ public class DoctorController {
      * Implement submitting documents with AWS S3 bucket
      * 
      * @param doctorId  id for doctor's details
-     * @param doctorDTO Object containing the doctor's data
      * @return
      */
     @PostMapping(value = "/{doctorId}/document", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity submitDoctor(@PathVariable(name = "doctorId") String doctorId,
-            @RequestBody DoctorDTO doctorDTO) {
-        Doctor newDoctor = modelMapper.map(doctorDTO, Doctor.class);
-        return new ResponseEntity(null, HttpStatus.NOT_IMPLEMENTED);
+    public ResponseEntity submitDoctor(@PathVariable(name = "doctorId") String doctorId) {
+        // Doctor newDoctor = modelMapper.map(doctorDTO, Doctor.class);
+        return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
     }
 
     /**
@@ -118,9 +126,10 @@ public class DoctorController {
      * @param doctorId Id of doctor to approve
      * @param doctorDTO approver details
      * @return Doctor details
+     * @throws IOException
      */
     @PutMapping(value="/{doctorId}/approve", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity approveDoctor(@PathVariable(name = "doctorId") String doctorId, @RequestBody DoctorDTO doctorDTO) {
+    public ResponseEntity approveDoctor(@PathVariable(name = "doctorId") String doctorId, @RequestBody DoctorDTO doctorDTO) throws IOException {
         try {
             doctorService.getDoctorDetails(doctorId);
         } catch(ResourceNotFoundException e) {
@@ -143,17 +152,19 @@ public class DoctorController {
         System.out.println("Saved Doctor: "+savedDoctor);
         DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
-        // TODO: implement notification functions here
+        String message = "Dr."+savedDoctor.getLastName()+" has been approved. Please find the details below: \n"+savedDoctor.toString();
+        kafkaMessageProducer.publish("message", "doctorApproval", message);
 
         return new ResponseEntity<>(savedDoctorDTO, HttpStatus.OK);
     }
 
     /**
      * API #4
+     * @throws IOException
      */
     @PutMapping(value = "/{doctorId}/reject", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity rejectDoctor(@PathVariable(name = "doctorId") String doctorId,
-            @RequestBody DoctorDTO doctorDTO) {
+            @RequestBody DoctorDTO doctorDTO) throws IOException {
         if (doctorService.getDoctorDetails(doctorId) == null) {
             ErrorModel errorModel = new ErrorModel(ErrorCodes.ERR_RESOURCE_NOT_FOUND,
                     "Requested resource is not available", null);
@@ -170,7 +181,8 @@ public class DoctorController {
         Doctor savedDoctor = doctorService.updateDoctorDetails(doctorId, updateDoctor);
         DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
-        // TODO: implement notification functions here
+        String message = "Dr."+savedDoctor.getLastName()+" has been rejected. Please find the details below: \n"+savedDoctor.toString();
+        kafkaMessageProducer.publish("message", "doctorApproval", message);
 
         return new ResponseEntity<>(savedDoctorDTO, HttpStatus.OK);
     }
@@ -206,7 +218,9 @@ public class DoctorController {
             }
         }
 
-        List<DoctorDTO> doctorDTOs = res.stream().map(doc -> modelMapper.map(doc, DoctorDTO.class))
+        List<Doctor> res_sorted = sortDoctors(res);
+
+        List<DoctorDTO> doctorDTOs = res_sorted.stream().map(doc -> modelMapper.map(doc, DoctorDTO.class))
                 .collect(Collectors.toList());
         return new ResponseEntity<>(doctorDTOs, HttpStatus.OK);
     }
@@ -233,7 +247,7 @@ public class DoctorController {
      */
     @GetMapping(value = "{doctorId}/documents/metadata")
     public ResponseEntity getDoctorDocuments(@PathVariable(name = "doctorId") String doctorId) {
-        return new ResponseEntity(null, HttpStatus.NOT_IMPLEMENTED);
+        return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
     }
 
     /**
@@ -246,7 +260,7 @@ public class DoctorController {
     @GetMapping(value = "{doctorId}/documents/{documentName}")
     public ResponseEntity getDoctorDownload(@PathVariable(name = "doctorId") String doctorId,
             @PathVariable(name = "documentName") String documentName) {
-        return new ResponseEntity(null, HttpStatus.NOT_IMPLEMENTED);
+        return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
     }
 
     public boolean validateDate(String date) {
@@ -259,4 +273,47 @@ public class DoctorController {
         return formatter.format(date);
     }
 
+    private List<Doctor> sortDoctors(List<Doctor> res) {
+        List<String> docIds = new ArrayList<>();
+        for (Doctor doctor : res) {
+            docIds.add(doctor.get_id());
+        }
+        
+        Map<String, Integer> comp_res = new HashMap<>();
+        Integer avg_rating;
+        Integer sum_rating;
+        
+        for (String id : docIds) {
+            avg_rating = 0;
+            sum_rating = 0;
+            List<Rating> ratings = ratingService.getRatingsByDoctor(id);
+            for(Rating rat: ratings) {
+                sum_rating += rat.getRating();
+            }
+            if (ratings.size() > 0) {
+                avg_rating = sum_rating/ratings.size();
+            } else {
+                avg_rating = 0;
+            }
+            comp_res.put(id, avg_rating);
+        }
+
+        List<Map.Entry<String, Integer>> list = new LinkedList<>(comp_res.entrySet());
+
+        Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
+            public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
+
+
+        List<Doctor> res1 = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : list) {
+            res1.add(doctorService.getDoctorDetails(entry.getKey()));
+            if(res1.size() > 19) {
+                break;
+            }
+        }
+        return res1;
+    }
 }

@@ -9,6 +9,7 @@ services:
      - "8081:8081"
     environment:
       MONGO_HOST: mongodb+srv://admin:admin123@cluster0.qkt5l.mongodb.net/?retryWrites=true&w=majority
+      KAFKA_HOST: 3.87.198.243
     depends_on:
       - notification
     networks:
@@ -21,9 +22,6 @@ services:
      - "8082:8082"
     environment:
       MONGO_HOST: mongodb+srv://admin:admin123@cluster0.qkt5l.mongodb.net/?retryWrites=true&w=majority
-    depends_on:
-      - notification
-      - doctor
     networks:
       - app-tier
   appointment:
@@ -61,45 +59,42 @@ services:
     environment:
       MONGO_HOST: mongodb+srv://admin:admin123@cluster0.qkt5l.mongodb.net/?retryWrites=true&w=majority
     depends_on:
-      - appointment
-      - payment
-      - notification
+      - doctor
     networks:
       - app-tier
   notification:
     build: notificationservice
     container_name: notificationService
     image: book_my_consultation/notificationservice:1.0.0
-    depends_on:
-      - kafka
-      - zookeeper
-    networks:
-      - app-tier
-  kafka:
-    image: 'bitnami/kafka:latest'
-    ports:
-      - "9092:9092"
-    volumes:
-      - "./kafka_data:/bitnami"
     environment:
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
-    depends_on:
-      - zookeeper
+      KAFKA_HOST: 3.87.198.243
     networks:
       - app-tier
-  zookeeper:
-    image: 'bitnami/zookeeper:latest'
-    volumes:
-      - "./zookeeper_data:/bitnami"
-    ports:
-      - "2181:2181"
-    environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
-    networks:
-      - app-tier
+  # kafka:
+  #   image: 'bitnami/kafka:latest'
+  #   ports:
+  #     - "9092:9092"
+  #   volumes:
+  #     - "./kafka_data:/bitnami"
+  #   environment:
+  #     - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://3.82.231.16:9092
+  #     - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+  #     - ALLOW_PLAINTEXT_LISTENER=yes
+  #     - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+  #   depends_on:
+  #     - zookeeper
+  #   networks:
+  #     - app-tier
+  # zookeeper:
+  #   image: 'bitnami/zookeeper:latest'
+  #   volumes:
+  #     - "./zookeeper_data:/bitnami"
+  #   ports:
+  #     - "2181:2181"
+  #   environment:
+  #     - ALLOW_ANONYMOUS_LOGIN=yes
+  #   networks:
+  #     - app-tier
 
 networks:
   app-tier:

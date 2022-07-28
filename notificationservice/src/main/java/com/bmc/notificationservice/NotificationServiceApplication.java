@@ -3,6 +3,7 @@ package com.bmc.notificationservice;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -23,9 +24,9 @@ public class NotificationServiceApplication {
 
         //Update the IP adress of Kafka server here//
 
-        props.setProperty("bootstrap.servers", "kafka:9092");
+        props.setProperty("bootstrap.servers", "ec2-3-87-198-243.compute-1.amazonaws.com:9092");
 
-        props.setProperty("group.id", "sweethome");
+        props.setProperty("group.id", "bookMyConsultation");
         props.setProperty("enable.auto.commit", "true");
         props.setProperty("auto.commit.interval.ms", "1000");
         props.setProperty("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
@@ -45,10 +46,24 @@ public class NotificationServiceApplication {
         try {
         	while(true) {
         		ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+                if (records.count() == 0) {
+                    continue;
+                }
         		for(ConsumerRecord<String, String> record : records) {
                     System.out.println("=================================================");
-        			System.out.println(record.value());
+        			System.out.println("RECORD: "+record.key()+" = "+record.value());
                     System.out.println("=================================================");
+                    if(record.key() == "doctorCreate") {
+                        // Send verification email
+                    } else if(record.key() == "doctorApproval") {
+                        // Send email
+                    } else if(record.key() == "userCreate") {
+                        // Send verification email
+                    } else if(record.key() == "setAppointment") {
+                        // Send email
+                    } else if(record.key() == "prescription") {
+                        // Send email
+                    }
         		}
         	}
         }finally {
