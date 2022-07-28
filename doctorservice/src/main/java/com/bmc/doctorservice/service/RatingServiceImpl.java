@@ -32,17 +32,7 @@ public class RatingServiceImpl implements RatingService {
     }
 
     @Override
-    public List<Rating> getRatingsByDoctor(String doctorId) {
-        List<Rating> allRatings = getAllRating();
-        List<Rating> res = new ArrayList<>();
-        System.out.println("ALL Ratings:"+allRatings.toString());
-        for (Rating rating : allRatings) {
-            if(rating.getDoctorId() == doctorId) {
-                res.add(rating);
-            }
-        }
-        return res;
-    }
+    public List<Rating> getRatingsByDoctor(String doctorId) { return ratingDao.findByDoctorId(doctorId); }
 
     @Override
     public Rating updateRatingDetails(String id, Rating rating) {

@@ -278,15 +278,42 @@ public class DoctorController {
         for (Doctor doctor : res) {
             docIds.add(doctor.get_id());
         }
-
-        Map<String, List<Rating>> comp = new HashMap<>();
+        
+        Map<String, Integer> comp_res = new HashMap<>();
+        Integer avg_rating;
+        Integer sum_rating;
+        
         for (String id : docIds) {
-            // Check and get rating details
+            avg_rating = 0;
+            sum_rating = 0;
             List<Rating> ratings = ratingService.getRatingsByDoctor(id);
-            comp.put(id, ratings);
+            for(Rating rat: ratings) {
+                sum_rating += rat.getRating();
+            }
+            if (ratings.size() > 0) {
+                avg_rating = sum_rating/ratings.size();
+            } else {
+                avg_rating = 0;
+            }
+            comp_res.put(id, avg_rating);
         }
-        System.out.println(comp.toString());
 
-        return res;
+        List<Map.Entry<String, Integer>> list = new LinkedList<>(comp_res.entrySet());
+
+        Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
+            public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
+
+
+        List<Doctor> res1 = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : list) {
+            res1.add(doctorService.getDoctorDetails(entry.getKey()));
+            if(res1.size() > 19) {
+                break;
+            }
+        }
+        return res1;
     }
 }
