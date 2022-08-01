@@ -1,8 +1,9 @@
 package com.bmc.doctorservice.controller;
 
 import com.bmc.doctorservice.exceptions.ResourceNotFoundException;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.bmc.doctorservice.documents.S3Repository;
 import com.bmc.doctorservice.dto.DoctorDTO;
-import com.bmc.doctorservice.dto.RatingDTO;
 import com.bmc.doctorservice.enums.ErrorCodes;
 import com.bmc.doctorservice.enums.Status;
 import com.bmc.doctorservice.model.Doctor;
@@ -14,18 +15,21 @@ import com.bmc.doctorservice.service.DoctorServiceImpl;
 import com.bmc.doctorservice.service.RatingService;
 
 import org.modelmapper.ModelMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping(value = "/doctors")
 public class DoctorController {
@@ -44,6 +48,8 @@ public class DoctorController {
 
     @Autowired
     RatingService ratingService;
+
+    private final S3Repository s3Repository;
 
     /**
      * API #1
@@ -97,7 +103,7 @@ public class DoctorController {
             DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
             String message = "Dr."+savedDoctor.getLastName()+" has been created. Please find the details below: \n"+savedDoctor.toString();
-            kafkaMessageProducer.publish("message", "doctorCreate", message);
+            kafkaMessageProducer.publish("message", "doctorCreate:"+savedDoctor.getEmailId(), message);
 
             return new ResponseEntity<>(savedDoctorDTO, HttpStatus.CREATED);
         } else {
@@ -108,16 +114,23 @@ public class DoctorController {
     }
 
     /**
-     * TODO: API #2
+     * API #2
      * Implement submitting documents with AWS S3 bucket
      * 
      * @param doctorId  id for doctor's details
      * @return
+     * @throws IOException
      */
     @PostMapping(value = "/{doctorId}/document", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity submitDoctor(@PathVariable(name = "doctorId") String doctorId) {
-        // Doctor newDoctor = modelMapper.map(doctorDTO, Doctor.class);
-        return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
+    public ResponseEntity<String> submitDoctor(@PathVariable(name = "doctorId") String doctorId, @RequestParam MultipartFile[] files) throws IOException {
+        for(MultipartFile file: files) {
+            try {
+                s3Repository.uploadFiles(doctorId, file);
+            } catch(AmazonS3Exception e){
+                return new ResponseEntity<>("File Upload Failed: "+e.getErrorMessage(), HttpStatus.FORBIDDEN);
+            }
+        }
+        return new ResponseEntity<>("File(s) uploaded Successfully", HttpStatus.OK);
     }
 
     /**
@@ -153,7 +166,7 @@ public class DoctorController {
         DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
         String message = "Dr."+savedDoctor.getLastName()+" has been approved. Please find the details below: \n"+savedDoctor.toString();
-        kafkaMessageProducer.publish("message", "doctorApproval", message);
+        kafkaMessageProducer.publish("message", "doctorApproval:"+savedDoctor.getEmailId(), savedDoctor.toString());
 
         return new ResponseEntity<>(savedDoctorDTO, HttpStatus.OK);
     }
@@ -182,7 +195,8 @@ public class DoctorController {
         DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
         String message = "Dr."+savedDoctor.getLastName()+" has been rejected. Please find the details below: \n"+savedDoctor.toString();
-        kafkaMessageProducer.publish("message", "doctorApproval", message);
+
+        kafkaMessageProducer.publish("message", "doctorApproval:"+savedDoctor.getEmailId(), savedDoctor.toString());
 
         return new ResponseEntity<>(savedDoctorDTO, HttpStatus.OK);
     }
@@ -240,14 +254,14 @@ public class DoctorController {
     }
 
     /**
-     * TODO: API #7
+     * API #7
      * 
      * @param doctorId Doctor's Id
      * @return list of documents somehow
      */
     @GetMapping(value = "{doctorId}/documents/metadata")
     public ResponseEntity getDoctorDocuments(@PathVariable(name = "doctorId") String doctorId) {
-        return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
+        return new ResponseEntity<>(s3Repository.getFileNames(doctorId), HttpStatus.OK);
     }
 
     /**
@@ -258,8 +272,10 @@ public class DoctorController {
      * @return downloadable file/blob
      */
     @GetMapping(value = "{doctorId}/documents/{documentName}")
-    public ResponseEntity getDoctorDownload(@PathVariable(name = "doctorId") String doctorId,
-            @PathVariable(name = "documentName") String documentName) {
+    public ResponseEntity getDoctorDownload(
+        @PathVariable(name = "doctorId") String doctorId,
+        @PathVariable(name = "documentName") String documentName
+    ) {
         return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
     }
 

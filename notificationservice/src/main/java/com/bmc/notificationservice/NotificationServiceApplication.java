@@ -4,18 +4,33 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import freemarker.template.TemplateException;
+
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.mail.MessagingException;
+
+@SpringBootApplication
 public class NotificationServiceApplication {
 
-	public static void main(String[] args) {
+    @Autowired
+    static SesEmailVerificationService verifyEmail;
 
+    @Autowired
+    static ModelMapper modelMapper;
+
+    public static void main(String[] args) {
+
+        
         System.out.println("=================================================");
         System.out.println("CONSUMERRRRRR");
         System.out.println("=================================================");
@@ -24,7 +39,7 @@ public class NotificationServiceApplication {
 
         //Update the IP adress of Kafka server here//
 
-        props.setProperty("bootstrap.servers", "ec2-3-87-198-243.compute-1.amazonaws.com:9092");
+        props.setProperty("bootstrap.servers", "ec2-3-82-201-210.compute-1.amazonaws.com:9092");
 
         props.setProperty("group.id", "bookMyConsultation");
         props.setProperty("enable.auto.commit", "true");
@@ -53,16 +68,32 @@ public class NotificationServiceApplication {
                     System.out.println("=================================================");
         			System.out.println("RECORD: "+record.key()+" = "+record.value());
                     System.out.println("=================================================");
-                    if(record.key() == "doctorCreate") {
-                        // Send verification email
-                    } else if(record.key() == "doctorApproval") {
-                        // Send email
-                    } else if(record.key() == "userCreate") {
-                        // Send verification email
-                    } else if(record.key() == "setAppointment") {
-                        // Send email
-                    } else if(record.key() == "prescription") {
-                        // Send email
+                    if(record.key().contains(':')) {
+                        String keyCategory = record.key().split(":",0)[0];
+                        String keyEmail = record.key().split(":",0)[1];
+                        System.out.println("KAFKA KEY: "+keyCategory+" for email: "+keyEmail);
+                        if(keyCategory == "doctorCreate") {
+                            // Send verification email
+                            verifyEmail.verifyEmail(keyEmail);
+                        } else if(keyCategory == "doctorApproval") {
+                            // Send email
+                            // verifyEmail.sendEmail(keyEmail);
+                            Doctor doc = modelMapper.map(record.value(), Doctor.class);
+                            try {
+                                verifyEmail.sendEmail(doc);
+                            } catch (IOException | TemplateException | MessagingException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
+                        } else if(keyCategory == "userCreate") {
+                            // Send verification email
+                            verifyEmail.verifyEmail(keyEmail);
+                        } else if(keyCategory == "setAppointment") {
+                            // Send email
+                            verifyEmail.sendSimpleMessage(keyEmail, )
+                        } else if(keyCategory == "prescription") {
+                            // Send email
+                        }
                     }
         		}
         	}
