@@ -21,6 +21,7 @@ import javax.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 @RequiredArgsConstructor
@@ -37,8 +38,8 @@ public class SesEmailVerificationService {
     // access key: AKIAYCA356BJ73DJMZUM
     // secret key: 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
 
-    @PostConstruct
-    public void init(){
+//    @PostConstruct
+    public void init(String type){
         // When you hit the endpoint to verify the email this needs to be the access key for your AWS account
         // When you hit the endpoint to send an email this value needs to be updated to the Smtp username that you generated
         accessKey="AKIAYCA356BJ73DJMZUM";
@@ -47,6 +48,11 @@ public class SesEmailVerificationService {
         // When you hit the endpoint to verify the email this needs to be the secret key for your AWS account
         // When you hit the endpoint to send an email this value needs to be updated to the Smtp password that you generated
         secretKey="gxoOW82uKii+rSWmYpIhN3md1pP2u5p8Ozj7fqD7";//
+
+        if (type.equals("send")){
+            accessKey="AKIAYCA356BJVGTRGNXZ";
+            secretKey="BIM1+ufUEjbhjangJSwizj6FVzRG6rBWLKs5NucqsRSA";
+        }
         StaticCredentialsProvider staticCredentialsProvider = StaticCredentialsProvider
             .create(AwsBasicCredentials.create(accessKey,secretKey));
         sesClient = SesClient.builder()
@@ -56,6 +62,7 @@ public class SesEmailVerificationService {
     }
 
     public void verifyEmail(String emailId){
+        System.out.println("emailId = " + emailId);
         sesClient.verifyEmailAddress(req->req.emailAddress(emailId));
     }
 
@@ -67,7 +74,8 @@ public class SesEmailVerificationService {
         sendSimpleMessage(doctor.getEmailId(),"Welcome Email",htmlBody);
     }
 
-    private void sendSimpleMessage(String toEmail, String subject, String body) throws MessagingException {
+    public void sendSimpleMessage(String toEmail, String subject, String body) throws MessagingException {
+        System.out.println("toEmail = " + toEmail + ", subject = " + subject + ", body = " + body);
         Properties props = System.getProperties();
         props.put("mail.transport.protocol","smtp");
         props.put("mail.smtp.port",587);
