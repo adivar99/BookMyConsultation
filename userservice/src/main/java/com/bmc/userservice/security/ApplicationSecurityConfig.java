@@ -1,4 +1,4 @@
-package com.bmc.doctorservice.security;
+package com.bmc.userservice.security;
 
 import java.util.Arrays;
 
@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
+import com.bmc.userservice.enums.Role;
 
 @Configuration
 @EnableWebSecurity
@@ -36,8 +37,8 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 .addFilter(new JWTAuthenticationFilter(authenticationManager()))
                 .addFilterAfter(new JWTTokenVerifier(),JWTAuthenticationFilter.class)
                 .authorizeRequests()
-                .antMatchers(HttpMethod.PUT, "*/doctors/*").hasRole(ApplicationRole.ADMIN.name())
-                .antMatchers("*/doctors/*").hasRole(ApplicationRole.USER.name())
+                .antMatchers(HttpMethod.PUT, "*/doctors/*").hasRole(ApplicationRole.ADMIN.toString())
+                .antMatchers("*/doctors/*").hasRole(ApplicationRole.USER.toString())
                 .anyRequest()
                 .authenticated()
                 .and()
