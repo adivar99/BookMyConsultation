@@ -70,6 +70,14 @@ services:
       KAFKA_HOST: 3.87.198.243
     networks:
       - app-tier
+  gateway:
+    build: gateway
+    container_name: gatewayService
+    image: book_my_consultation.gateway:1.0.0
+    ports:
+      - "8080:8080"
+    networks:
+      - app-tier
   # kafka:
   #   image: 'bitnami/kafka:latest'
   #   ports:
