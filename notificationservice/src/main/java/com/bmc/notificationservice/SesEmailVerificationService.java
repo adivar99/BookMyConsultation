@@ -69,9 +69,11 @@ public class SesEmailVerificationService {
     public void sendEmail(Doctor doctor) throws IOException, TemplateException, MessagingException {
         Map<String,Object> templateModel = new HashMap<>();
         templateModel.put("doctor",doctor);
-        Template freeMarkerTemplate = configurer.getConfiguration().getTemplate("userwelcome.ftl");
-        String htmlBody = FreeMarkerTemplateUtils.processTemplateIntoString(freeMarkerTemplate,templateModel);
-        sendSimpleMessage(doctor.getEmailId(),"Welcome Email",htmlBody);
+        System.out.println("templateModel = " + templateModel);
+//        Template freeMarkerTemplate = configurer.getConfiguration().getTemplate("userwelcome.ftl");
+//        String htmlBody = FreeMarkerTemplateUtils.processTemplateIntoString(freeMarkerTemplate,templateModel);
+//        System.out.println("htmlBody = " + htmlBody);
+        sendSimpleMessage(doctor.getEmailId(),"Welcome Email",templateModel.toString());
     }
 
     public void sendSimpleMessage(String toEmail, String subject, String body) throws MessagingException {
@@ -81,14 +83,17 @@ public class SesEmailVerificationService {
         props.put("mail.smtp.port",587);
         props.put("mail.smtp.starttls.enable","true");
         props.put("mail.smtp.auth","true");
+        System.out.println("props = " + props);
         javax.mail.Session session = javax.mail.Session.getDefaultInstance(props);
         MimeMessage msg = new MimeMessage(session);
         msg.setFrom(fromEmail);
         msg.setRecipient(Message.RecipientType.TO, new InternetAddress(toEmail));
         msg.setSubject(subject);
         msg.setContent(body,"text/html");
+        System.out.println("msg = " + msg);
         Transport transport = session.getTransport();
         try {
+            System.out.println("Trying to send to AWS: ("+accessKey+":"+secretKey+")");
             transport.connect("email-smtp.us-east-1.amazonaws.com", accessKey, secretKey);
             transport.sendMessage(msg, msg.getAllRecipients());
         }catch(Exception e){

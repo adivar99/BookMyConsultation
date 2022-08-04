@@ -36,7 +36,7 @@ public class NotificationApplication implements CommandLineRunner {
         Properties props = new Properties();
 
         //Update the IP adress of Kafka server here//
-        props.setProperty("bootstrap.servers", "ec2-54-157-225-43.compute-1.amazonaws.com:9092");
+        props.setProperty("bootstrap.servers", "ec2-52-90-136-134.compute-1.amazonaws.com:9092");
 
         props.setProperty("group.id", "bookMyConsultation");
         props.setProperty("enable.auto.commit", "true");
@@ -69,24 +69,26 @@ public class NotificationApplication implements CommandLineRunner {
                         String keyCategory = record.key().split(":", 0)[0];
                         String keyEmail = record.key().split(":", 0)[1];
                         System.out.println("KAFKA KEY: " + keyCategory + " for email: " + keyEmail);
+                        System.out.println(Objects.equals(keyCategory, "doctorApproval"));
                         if (Objects.equals(keyCategory, "doctorCreate")) {
                             // Send verification email
                             verifyEmail.init("verify");
                             verifyEmail.verifyEmail(keyEmail);
-                        } else if (keyCategory == "doctorApproval") {
+                        } else if (Objects.equals(keyCategory, "doctorApproval")) {
                             // Send email
                             verifyEmail.init("send");
                             Doctor doc = modelMapper.map(record.value(), Doctor.class);
                             try {
-                                verifyEmail.sendEmail(doc);
-                            } catch (IOException | TemplateException | MessagingException e) {
+                                System.out.println("Trying to send email: "+doc.toString());
+                                verifyEmail.sendSimpleMessage(keyEmail,"Welcome email", record.value());
+                            } catch (MessagingException e) {
                                 System.out.println("Email Error: " + e.getMessage());
                             }
-                        } else if (keyCategory == "userCreate") {
+                        } else if (Objects.equals(keyCategory, "userCreate")) {
                             // Send verification email
                             verifyEmail.init("verify");
                             verifyEmail.verifyEmail(keyEmail);
-                        } else if (keyCategory == "setAppointment") {
+                        } else if (Objects.equals(keyCategory, "setAppointment")) {
                             // Send email
                             verifyEmail.init("send");
                             try {
@@ -94,8 +96,15 @@ public class NotificationApplication implements CommandLineRunner {
                             } catch (MessagingException m) {
                                 System.out.println("Email Error: " + m.getMessage());
                             }
-                        } else if (keyCategory == "prescription") {
+                        } else if (Objects.equals(keyCategory, "prescription")) {
                             // Send email
+                            // Send email
+                            verifyEmail.init("send");
+                            try {
+                                verifyEmail.sendSimpleMessage(keyEmail, "Prescription", record.value());
+                            } catch (MessagingException m) {
+                                System.out.println("Email Error: " + m.getMessage());
+                            }
                         }
                     }
                 }
