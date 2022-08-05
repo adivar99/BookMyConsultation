@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 @RestController
-@RequestMapping(value = "/user")
+@RequestMapping(value = "/users")
 public class UserController {
     @Autowired
     UserService userService;

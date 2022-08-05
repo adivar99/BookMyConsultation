@@ -17,8 +17,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
-import com.bmc.appointmentservice.enums.Role;
-
 @Configuration
 @EnableWebSecurity
 public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
@@ -37,8 +35,11 @@ public class ApplicationSecurityConfig extends WebSecurityConfigurerAdapter {
                 .addFilter(new JWTAuthenticationFilter(authenticationManager()))
                 .addFilterAfter(new JWTTokenVerifier(),JWTAuthenticationFilter.class)
                 .authorizeRequests()
-                .antMatchers(HttpMethod.PUT, "*/doctors/*").hasRole(ApplicationRole.ADMIN.toString())
-                .antMatchers("*/doctors/*").hasRole(ApplicationRole.USER.toString())
+                .antMatchers("*/availability/*").hasRole(ApplicationRole.ADMIN.toString())
+                .antMatchers("*/availability/*").hasRole(ApplicationRole.USER.toString())
+                .antMatchers("*/appointment/*").hasRole(ApplicationRole.ADMIN.toString())
+                .antMatchers("*/appointment/*").hasRole(ApplicationRole.USER.toString())
+                .antMatchers("*/prescription*").hasRole(ApplicationRole.ADMIN.toString())
                 .anyRequest()
                 .authenticated()
                 .and()
