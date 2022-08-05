@@ -21,6 +21,7 @@ import javax.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 @RequiredArgsConstructor
@@ -29,20 +30,29 @@ public class SesEmailVerificationService {
 
     private SesClient sesClient;
     private final FreeMarkerConfigurer configurer;
-    private String fromEmail = "";//needs to be a verified email id
+    private String fromEmail = "adivar1999@gmail.com";//needs to be a verified email id
     private String accessKey;
     private String secretKey;
 
-    @PostConstruct
-    public void init(){
+    // TODO: Remove keys before submitting
+    // access key: AKIAYCA356BJ73DJMZUM
+    // secret key: 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
+
+//    @PostConstruct
+    public void init(String type){
         // When you hit the endpoint to verify the email this needs to be the access key for your AWS account
         // When you hit the endpoint to send an email this value needs to be updated to the Smtp username that you generated
-        accessKey="";
+        accessKey="AKIAYCA356BJ73DJMZUM";
 
 
         // When you hit the endpoint to verify the email this needs to be the secret key for your AWS account
         // When you hit the endpoint to send an email this value needs to be updated to the Smtp password that you generated
-        secretKey="";//
+        secretKey="gxoOW82uKii+rSWmYpIhN3md1pP2u5p8Ozj7fqD7";//
+
+        if (type.equals("send")){
+            accessKey="AKIAYCA356BJVGTRGNXZ";
+            secretKey="BIM1+ufUEjbhjangJSwizj6FVzRG6rBWLKs5NucqsRSA";
+        }
         StaticCredentialsProvider staticCredentialsProvider = StaticCredentialsProvider
             .create(AwsBasicCredentials.create(accessKey,secretKey));
         sesClient = SesClient.builder()
@@ -52,31 +62,38 @@ public class SesEmailVerificationService {
     }
 
     public void verifyEmail(String emailId){
+        System.out.println("emailId = " + emailId);
         sesClient.verifyEmailAddress(req->req.emailAddress(emailId));
     }
 
     public void sendEmail(Doctor doctor) throws IOException, TemplateException, MessagingException {
         Map<String,Object> templateModel = new HashMap<>();
         templateModel.put("doctor",doctor);
-        Template freeMarkerTemplate = configurer.getConfiguration().getTemplate("userwelcome.ftl");
-        String htmlBody = FreeMarkerTemplateUtils.processTemplateIntoString(freeMarkerTemplate,templateModel);
-        sendSimpleMessage(doctor.getEmailId(),"Welcome Email",htmlBody);
+        System.out.println("templateModel = " + templateModel);
+//        Template freeMarkerTemplate = configurer.getConfiguration().getTemplate("userwelcome.ftl");
+//        String htmlBody = FreeMarkerTemplateUtils.processTemplateIntoString(freeMarkerTemplate,templateModel);
+//        System.out.println("htmlBody = " + htmlBody);
+        sendSimpleMessage(doctor.getEmailId(),"Welcome Email",templateModel.toString());
     }
 
-    private void sendSimpleMessage(String toEmail, String subject, String body) throws MessagingException {
+    public void sendSimpleMessage(String toEmail, String subject, String body) throws MessagingException {
+        System.out.println("toEmail = " + toEmail + ", subject = " + subject + ", body = " + body);
         Properties props = System.getProperties();
         props.put("mail.transport.protocol","smtp");
         props.put("mail.smtp.port",587);
         props.put("mail.smtp.starttls.enable","true");
         props.put("mail.smtp.auth","true");
+        System.out.println("props = " + props);
         javax.mail.Session session = javax.mail.Session.getDefaultInstance(props);
         MimeMessage msg = new MimeMessage(session);
         msg.setFrom(fromEmail);
         msg.setRecipient(Message.RecipientType.TO, new InternetAddress(toEmail));
         msg.setSubject(subject);
         msg.setContent(body,"text/html");
+        System.out.println("msg = " + msg);
         Transport transport = session.getTransport();
         try {
+            System.out.println("Trying to send to AWS: ("+accessKey+":"+secretKey+")");
             transport.connect("email-smtp.us-east-1.amazonaws.com", accessKey, secretKey);
             transport.sendMessage(msg, msg.getAllRecipients());
         }catch(Exception e){

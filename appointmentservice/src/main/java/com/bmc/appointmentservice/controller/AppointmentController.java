@@ -147,7 +147,7 @@ public class AppointmentController {
         Appointment savedAppointment = appointmentService.saveAppointmentDetails(newAppointment);
 
         String message = "Appointment has been set with doctor "+savedAppointment.getDoctor_name() + " On "+ savedAppointment.getAppointment_date() + " at "+ savedAppointment.getTime_slot();
-        kafkaMessageProducer.publish("message", "setAppointment", message);
+        kafkaMessageProducer.publish("message", "setAppointment:"+savedAppointment.getUser_email_id(), message);
 
 
         return new ResponseEntity<String>(savedAppointment.getAppointment_id(), HttpStatus.OK);
@@ -194,7 +194,7 @@ public class AppointmentController {
             Prescription savedPrescription = prescriptionService.acceptPrescriptionDetails(newPrescription);
 
             String message = "Prescription has been created for "+savedAppointment.getUser_name()+". The details are given below: \n"+savedPrescription.toString();
-            kafkaMessageProducer.publish("message", "prescription", message);
+            kafkaMessageProducer.publish("message", "prescription:"+savedAppointment.getUser_email_id(), message);
             return new ResponseEntity<>(null, HttpStatus.OK);
         }
         return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);

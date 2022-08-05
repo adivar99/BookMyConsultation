@@ -1,5 +1,7 @@
 package com.bmc.userservice.controller;
 
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.bmc.userservice.documents.S3Repository;
 import com.bmc.userservice.dto.UserDTO;
 import com.bmc.userservice.enums.ErrorCodes;
 import com.bmc.userservice.exceptions.ErrorModel;
@@ -7,17 +9,21 @@ import com.bmc.userservice.model.User;
 import com.bmc.userservice.producer.KafkaMessageProducer;
 import com.bmc.userservice.service.UserService;
 import org.modelmapper.ModelMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping(value = "/user")
 public class UserController {
@@ -32,6 +38,8 @@ public class UserController {
 
     @Autowired
     RestTemplate restTemplate;
+
+    private final S3Repository s3Repository;
 
     /**
      * API #1
@@ -79,7 +87,7 @@ public class UserController {
 
             // TODO: Implement notification function here
             String message = " User"+savedUser.getLastName()+" has been created. Please find the details below: \n"+savedUser.toString();
-            kafkaMessageProducer.publish("message", "userCreate", message);
+            kafkaMessageProducer.publish("message", "userCreate:"+savedUser.getEmailId(), message);
 
             return new ResponseEntity<>(savedUserDTO, HttpStatus.CREATED);
         } else {
@@ -110,11 +118,18 @@ public class UserController {
      * @param documents documents in some form to save
      * @return String of confirmation
      *
-     * TODO: Implement the document saving part with AWS S3
+     * Implement the document saving part with AWS S3
      */
     @PostMapping("/{userId}/documents")
-    public ResponseEntity saveUserDocuments(@PathVariable(name = "userId") String userId) {
-        return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
+    public ResponseEntity<String> saveUserDocuments(@PathVariable(name = "userId") String userId, @RequestParam MultipartFile[] files) throws IOException {
+        for(MultipartFile file: files) {
+            try {
+                s3Repository.uploadFiles(userId, file);
+            } catch(AmazonS3Exception e){
+                return new ResponseEntity<>("File Upload Failed: "+e.getErrorMessage(), HttpStatus.FORBIDDEN);
+            }
+        }
+        return new ResponseEntity<>("File(s) uploaded Successfully", HttpStatus.OK);
     }
 
     /**
@@ -137,7 +152,7 @@ public class UserController {
      * @return a list of document names uploaded
      */
     @GetMapping("/{userId}/documents/metadata")
-    public ResponseEntity getUserDocuments(@PathVariable(name = "userId") String userId) {
-        return new ResponseEntity<>(null, HttpStatus.NOT_IMPLEMENTED);
+    public ResponseEntity<List<String>> getUserDocuments(@PathVariable(name = "userId") String userId) {
+        return new ResponseEntity<>(s3Repository.getFileNames(userId), HttpStatus.OK);
     }
 }
