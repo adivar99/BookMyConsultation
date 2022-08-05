@@ -2,13 +2,17 @@ package com.bmc.doctorservice.controller;
 
 import com.bmc.doctorservice.exceptions.ResourceNotFoundException;
 import com.bmc.doctorservice.dto.DoctorDTO;
+import com.bmc.doctorservice.dto.RatingDTO;
 import com.bmc.doctorservice.enums.ErrorCodes;
 import com.bmc.doctorservice.enums.Status;
 import com.bmc.doctorservice.model.Doctor;
+import com.bmc.doctorservice.model.Rating;
 import com.bmc.doctorservice.exceptions.ErrorModel;
 import com.bmc.doctorservice.enums.Specialty;
 import com.bmc.doctorservice.producer.KafkaMessageProducer;
 import com.bmc.doctorservice.service.DoctorServiceImpl;
+import com.bmc.doctorservice.service.RatingService;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,14 +42,18 @@ public class DoctorController {
     @Autowired
     RestTemplate restTemplate;
 
+    @Autowired
+    RatingService ratingService;
+
     /**
      * API #1
      * 
      * @param doctorDTO doctor details
      * @return saved doctor details
+     * @throws IOException
      */
     @PostMapping(value = "/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity createDoctor(@RequestBody DoctorDTO doctorDTO) {
+    public ResponseEntity createDoctor(@RequestBody DoctorDTO doctorDTO) throws IOException {
         Doctor newDoctor = modelMapper.map(doctorDTO, Doctor.class);
 
         boolean validated = true;
@@ -88,7 +96,8 @@ public class DoctorController {
             Doctor savedDoctor = doctorService.acceptDoctorDetails(newDoctor);
             DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
-            // TODO: Implement notification function here
+            String message = "Dr."+savedDoctor.getLastName()+" has been created. Please find the details below: \n"+savedDoctor.toString();
+            kafkaMessageProducer.publish("message", "doctorCreate", message);
 
             return new ResponseEntity<>(savedDoctorDTO, HttpStatus.CREATED);
         } else {
@@ -103,7 +112,6 @@ public class DoctorController {
      * Implement submitting documents with AWS S3 bucket
      * 
      * @param doctorId  id for doctor's details
-     * @param doctorDTO Object containing the doctor's data
      * @return
      */
     @PostMapping(value = "/{doctorId}/document", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -144,7 +152,7 @@ public class DoctorController {
         System.out.println("Saved Doctor: "+savedDoctor);
         DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
-        String message = "Dr. "+savedDoctor.getLastName()+" has been approved. Please find the details below: \n"+savedDoctor.toString();
+        String message = "Dr."+savedDoctor.getLastName()+" has been approved. Please find the details below: \n"+savedDoctor.toString();
         kafkaMessageProducer.publish("message", "doctorApproval", message);
 
         return new ResponseEntity<>(savedDoctorDTO, HttpStatus.OK);
@@ -173,7 +181,7 @@ public class DoctorController {
         Doctor savedDoctor = doctorService.updateDoctorDetails(doctorId, updateDoctor);
         DoctorDTO savedDoctorDTO = modelMapper.map(savedDoctor, DoctorDTO.class);
 
-        String message = "Dr. "+savedDoctor.getLastName()+" has been rejected. Please find the details below: \n"+savedDoctor.toString();
+        String message = "Dr."+savedDoctor.getLastName()+" has been rejected. Please find the details below: \n"+savedDoctor.toString();
         kafkaMessageProducer.publish("message", "doctorApproval", message);
 
         return new ResponseEntity<>(savedDoctorDTO, HttpStatus.OK);
@@ -210,7 +218,9 @@ public class DoctorController {
             }
         }
 
-        List<DoctorDTO> doctorDTOs = res.stream().map(doc -> modelMapper.map(doc, DoctorDTO.class))
+        List<Doctor> res_sorted = sortDoctors(res);
+
+        List<DoctorDTO> doctorDTOs = res_sorted.stream().map(doc -> modelMapper.map(doc, DoctorDTO.class))
                 .collect(Collectors.toList());
         return new ResponseEntity<>(doctorDTOs, HttpStatus.OK);
     }
@@ -263,4 +273,47 @@ public class DoctorController {
         return formatter.format(date);
     }
 
+    private List<Doctor> sortDoctors(List<Doctor> res) {
+        List<String> docIds = new ArrayList<>();
+        for (Doctor doctor : res) {
+            docIds.add(doctor.get_id());
+        }
+        
+        Map<String, Integer> comp_res = new HashMap<>();
+        Integer avg_rating;
+        Integer sum_rating;
+        
+        for (String id : docIds) {
+            avg_rating = 0;
+            sum_rating = 0;
+            List<Rating> ratings = ratingService.getRatingsByDoctor(id);
+            for(Rating rat: ratings) {
+                sum_rating += rat.getRating();
+            }
+            if (ratings.size() > 0) {
+                avg_rating = sum_rating/ratings.size();
+            } else {
+                avg_rating = 0;
+            }
+            comp_res.put(id, avg_rating);
+        }
+
+        List<Map.Entry<String, Integer>> list = new LinkedList<>(comp_res.entrySet());
+
+        Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
+            public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
+
+
+        List<Doctor> res1 = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : list) {
+            res1.add(doctorService.getDoctorDetails(entry.getKey()));
+            if(res1.size() > 19) {
+                break;
+            }
+        }
+        return res1;
+    }
 }
