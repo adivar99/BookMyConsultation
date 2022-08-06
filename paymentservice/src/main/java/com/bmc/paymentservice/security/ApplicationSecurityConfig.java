@@ -1,4 +1,4 @@
-package com.bmc.doctorservice.security;
+package com.bmc.paymentservice.security;
 
 import java.util.Arrays;
 
@@ -17,7 +17,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
-import com.bmc.doctorservice.enums.Role;
 
 @Configuration
 @EnableWebSecurity
