@@ -1,4 +1,4 @@
-package com.bmc.doctorservice.security;
+package com.bmc.paymentservice.security;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Repository;

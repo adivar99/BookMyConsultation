@@ -1,4 +1,4 @@
-package com.bmc.doctorservice.security;
+package com.bmc.paymentservice.security;
 
 import com.google.common.collect.Sets;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

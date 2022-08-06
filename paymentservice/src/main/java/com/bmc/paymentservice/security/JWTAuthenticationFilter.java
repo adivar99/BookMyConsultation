@@ -1,4 +1,4 @@
-package com.bmc.doctorservice.security;
+package com.bmc.paymentservice.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
