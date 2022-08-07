@@ -24,7 +24,7 @@ public class NotificationServiceApplication {
 
         //Update the IP adress of Kafka server here//
 
-        props.setProperty("bootstrap.servers", "ec2-3-84-59-47.compute-1.amazonaws.com:9092");
+        props.setProperty("bootstrap.servers", "ec2-3-87-198-243.compute-1.amazonaws.com:9092");
 
         props.setProperty("group.id", "bookMyConsultation");
         props.setProperty("enable.auto.commit", "true");
