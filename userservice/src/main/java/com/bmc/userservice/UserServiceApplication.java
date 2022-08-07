@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Bean;
 import org.modelmapper.ModelMapper;
 import org.springframework.web.client.RestTemplate;
 
+import com.amazonaws.services.s3.model.ObjectMetadata;
+
 @SpringBootApplication
 public class UserServiceApplication {
 
