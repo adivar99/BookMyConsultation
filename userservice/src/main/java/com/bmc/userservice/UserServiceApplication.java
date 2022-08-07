@@ -19,4 +19,9 @@ public class UserServiceApplication {
 	@Bean
 	public RestTemplate getRestTemplate() { return new RestTemplate(); }
 
+	@Bean
+    ObjectMetadata objectMetadata() {
+        return new ObjectMetadata();
+    }
+
 }

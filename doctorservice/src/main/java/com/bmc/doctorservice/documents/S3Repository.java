@@ -57,10 +57,11 @@ public class S3Repository {
     public List<String> getFileNames(String doctorId) {
         List<String> res = new ArrayList<>();
         S3Objects.inBucket(s3Client, BUCKET_NAME).forEach((S3ObjectSummary objectSummary) -> {
-            String name = objectSummary.getKey();
-            if (name.split("/",0)[0] == doctorId) {
-                res.add(name.split("/",0)[1]);
-            }
+            // String name = objectSummary.getKey();
+            // if (name.split("/",0)[0] == doctorId) {
+            // res.add(name.split("/",0)[1]);
+            // }
+            res.add(objectSummary.getKey());
         });
         return res;
     }
