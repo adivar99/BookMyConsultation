@@ -7,6 +7,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +26,9 @@ public class NotificationApplication implements CommandLineRunner {
     @Autowired
     ModelMapper modelMapper;
 
+    @Value("${url.service.kafka}")
+    private String kafkaIp;
+
     private final SesEmailVerificationService verifyEmail;
 
     @Override
@@ -36,7 +40,7 @@ public class NotificationApplication implements CommandLineRunner {
         Properties props = new Properties();
 
         //Update the IP adress of Kafka server here//
-        props.setProperty("bootstrap.servers", "ec2-52-90-136-134.compute-1.amazonaws.com:9092");
+        props.setProperty("bootstrap.servers", kafkaIp + ":9092");
 
         props.setProperty("group.id", "bookMyConsultation");
         props.setProperty("enable.auto.commit", "true");

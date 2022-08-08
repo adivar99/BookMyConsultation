@@ -19,13 +19,13 @@ import com.bmc.appointmentservice.service.PrescriptionService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -54,13 +54,20 @@ public class AppointmentController {
     @Value("${url.service.doctor}")
     private String doctorServiceUrl;
 
-    @Value("${url.service.doctor1}")
-    private String doctorServiceUrl1;
+    @Value("${url.service.instance}")
+    private String instanceIp;
 
     @PostMapping("/doctor/{doctorId}/availability")
-    public ResponseEntity setAvailability(@PathVariable(value = "doctorId") String doctorId, @RequestBody Map<String, Map<String, List<String>>> availabilityMapDTO) throws ParseException {
+    public ResponseEntity setAvailability(@RequestHeader HttpHeaders headers, @PathVariable(value = "doctorId") String doctorId, @RequestBody Map<String, Map<String, List<String>>> availabilityMapDTO) throws ParseException, URISyntaxException {
         // Check and get doctor details
-        DoctorDTO savedDoctor = restTemplate.getForObject(doctorServiceUrl+"/doctors/"+doctorId, DoctorDTO.class);
+        String accessToken = headers.getFirst(HttpHeaders.AUTHORIZATION);
+        HttpHeaders send_headers = new HttpHeaders();
+        send_headers.setContentType(MediaType.APPLICATION_JSON);
+        send_headers.set("Authorization", "Bearer "+accessToken);
+        String url = "http://"+instanceIp+":8081/doctors/"+doctorId;
+//        DoctorDTO savedDoctor = restTemplate.getForObject(doctorServiceUrl+"/doctors/"+doctorId, DoctorDTO.class);
+
+        DoctorDTO savedDoctor = restTemplate.exchange(RequestEntity.get(new URI(url)).headers(send_headers).build(), DoctorDTO.class).getBody();
 
         if (savedDoctor == null) {
             ErrorModel err = new ErrorModel(ErrorCodes.ERR_RESOURCE_NOT_FOUND, "Doctor with id ["+doctorId+"] not found", null);
@@ -84,9 +91,15 @@ public class AppointmentController {
     }
 
     @GetMapping("/doctor/{doctorId}/availability")
-    public ResponseEntity getAvailability(@PathVariable(value = "doctorId") String doctorId) throws ParseException {
+    public ResponseEntity getAvailability(@RequestHeader HttpHeaders headers, @PathVariable(value = "doctorId") String doctorId) throws ParseException, URISyntaxException {
         // Check and get doctor details
-        DoctorDTO savedDoctor = restTemplate.getForObject(doctorServiceUrl1+"/doctors/"+doctorId, DoctorDTO.class);
+        String accessToken = headers.getFirst(HttpHeaders.AUTHORIZATION);
+        HttpHeaders send_headers = new HttpHeaders();
+        send_headers.setContentType(MediaType.APPLICATION_JSON);
+        send_headers.set("Authorization", "Bearer "+accessToken);
+        String url = "http://"+instanceIp+":8081/doctors/"+doctorId;
+//        DoctorDTO savedDoctor = restTemplate.getForObject(doctorServiceUrl+"/doctors/"+doctorId, DoctorDTO.class);
+        DoctorDTO savedDoctor = restTemplate.exchange(RequestEntity.get(new URI(url)).headers(send_headers).build(), DoctorDTO.class).getBody();
 
         if (savedDoctor == null) {
             ErrorModel err = new ErrorModel(ErrorCodes.ERR_RESOURCE_NOT_FOUND, "Doctor with id ["+doctorId+"] not found", null);
@@ -101,22 +114,30 @@ public class AppointmentController {
     }
 
     @PostMapping("/appointments")
-    public ResponseEntity createAppointment(@RequestBody AppointmentDTO appointmentDTO) throws ParseException, IOException {
+    public ResponseEntity createAppointment(@RequestHeader HttpHeaders headers, @RequestBody AppointmentDTO appointmentDTO) throws ParseException, IOException, URISyntaxException {
         boolean found = false;
         Date newDate = new SimpleDateFormat("yyyy-MM-dd").parse(appointmentDTO.getAppointment_date());
         Appointment newAppointment = modelMapper.map(appointmentDTO, Appointment.class);
         newAppointment.setAppointment_date(newDate);
 
+        String accessToken = headers.getFirst(HttpHeaders.AUTHORIZATION);
+        HttpHeaders send_headers = new HttpHeaders();
+        send_headers.setContentType(MediaType.APPLICATION_JSON);
+        send_headers.set("Authorization", "Bearer "+accessToken);
+
         // Check and get doctor details
-        DoctorDTO savedDoctor = restTemplate.getForObject("http://localhost:8081/doctors/"+newAppointment.getDoctor_id(), DoctorDTO.class);
+        String url = "http://"+instanceIp+":8081/doctors/"+newAppointment.getDoctor_id();
+//        DoctorDTO savedDoctor = restTemplate.getForObject(doctorServiceUrl+"/doctors/"+doctorId, DoctorDTO.class);
+        DoctorDTO savedDoctor = restTemplate.exchange(RequestEntity.get(new URI(url)).headers(send_headers).build(), DoctorDTO.class).getBody();
 
         if (savedDoctor == null) {
             ErrorModel err = new ErrorModel(ErrorCodes.ERR_RESOURCE_NOT_FOUND, "Doctor with id ["+newAppointment.getDoctor_id()+"] not found", null);
             return new ResponseEntity<>(err, HttpStatus.BAD_REQUEST);
         }
 
-        // Check and get User details
-        UserDTO savedUser = restTemplate.getForObject("http://localhost:8082/user/"+newAppointment.getUser_id(), UserDTO.class);
+        // Check and get user details
+        String userUrl = "http://"+instanceIp+":8082/users/"+newAppointment.getUser_id();
+        DoctorDTO savedUser = restTemplate.exchange(RequestEntity.get(new URI(userUrl)).headers(send_headers).build(), DoctorDTO.class).getBody();
 
         if (savedUser == null) {
             ErrorModel err = new ErrorModel(ErrorCodes.ERR_RESOURCE_NOT_FOUND, "User with id ["+newAppointment.getUser_id()+"] not found", null);

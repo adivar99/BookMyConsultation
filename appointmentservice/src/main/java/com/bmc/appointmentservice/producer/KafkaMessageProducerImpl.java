@@ -3,6 +3,7 @@ package com.bmc.appointmentservice.producer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -10,10 +11,14 @@ import java.util.Properties;
 
 @Component
 public class KafkaMessageProducerImpl implements KafkaMessageProducer{
+
+    @Value("${url.service.kafka}")
+    private String kafkaIp;
+
     @Override
     public void publish(String topic, String key, String value) throws IOException {
         Properties properties = new Properties();
-        properties.put("bootstrap.servers","ec2-3-85-114-10.compute-1.amazonaws.com:9092");
+        properties.put("bootstrap.servers", kafkaIp+":9092");
         properties.put("acks","all");
         properties.put("retries", 0);
         properties.put("linger.ms",0);
