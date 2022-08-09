@@ -51,9 +51,6 @@ public class AppointmentController {
     @Autowired
     RestTemplate restTemplate;
 
-    @Value("${url.service.doctor}")
-    private String doctorServiceUrl;
-
     @Value("${url.service.instance}")
     private String instanceIp;
 
@@ -65,7 +62,6 @@ public class AppointmentController {
         send_headers.setContentType(MediaType.APPLICATION_JSON);
         send_headers.set("Authorization", "Bearer "+accessToken);
         String url = "http://"+instanceIp+":8081/doctors/"+doctorId;
-//        DoctorDTO savedDoctor = restTemplate.getForObject(doctorServiceUrl+"/doctors/"+doctorId, DoctorDTO.class);
 
         DoctorDTO savedDoctor = restTemplate.exchange(RequestEntity.get(new URI(url)).headers(send_headers).build(), DoctorDTO.class).getBody();
 
@@ -98,7 +94,6 @@ public class AppointmentController {
         send_headers.setContentType(MediaType.APPLICATION_JSON);
         send_headers.set("Authorization", "Bearer "+accessToken);
         String url = "http://"+instanceIp+":8081/doctors/"+doctorId;
-//        DoctorDTO savedDoctor = restTemplate.getForObject(doctorServiceUrl+"/doctors/"+doctorId, DoctorDTO.class);
         DoctorDTO savedDoctor = restTemplate.exchange(RequestEntity.get(new URI(url)).headers(send_headers).build(), DoctorDTO.class).getBody();
 
         if (savedDoctor == null) {
@@ -127,7 +122,6 @@ public class AppointmentController {
 
         // Check and get doctor details
         String url = "http://"+instanceIp+":8081/doctors/"+newAppointment.getDoctor_id();
-//        DoctorDTO savedDoctor = restTemplate.getForObject(doctorServiceUrl+"/doctors/"+doctorId, DoctorDTO.class);
         DoctorDTO savedDoctor = restTemplate.exchange(RequestEntity.get(new URI(url)).headers(send_headers).build(), DoctorDTO.class).getBody();
 
         if (savedDoctor == null) {
