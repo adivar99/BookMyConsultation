@@ -8,9 +8,9 @@ services:
     ports:
      - "8081:8081"
     environment:
-      MONGO_HOST
-      KAFKA_HOST
-      INSTANCE_IP
+     - MONGO_HOST
+     - KAFKA_HOST
+     - INSTANCE_IP
     depends_on:
       - notification
     networks:
@@ -22,9 +22,9 @@ services:
     ports:
      - "8082:8082"
     environment:
-      MONGO_HOST
-      KAFKA_HOST
-      INSTANCE_IP
+     - MONGO_HOST
+     - KAFKA_HOST
+     - INSTANCE_IP
     networks:
       - app-tier
   appointment:
@@ -34,10 +34,10 @@ services:
     ports:
      - "8083:8083"
     environment:
-      MYSQL_HOST
-      MONGO_HOST
-      KAFKA_HOST
-      INSTANCE_IP
+     - MYSQL_HOST
+     - MONGO_HOST
+     - KAFKA_HOST
+     - INSTANCE_IP
     depends_on:
       - notification
       - doctor
@@ -51,8 +51,8 @@ services:
     ports:
      - "8084:8084"
     environment:
-      KAFKA_HOST
-      INSTANCE_IP
+     - KAFKA_HOST
+     - INSTANCE_IP
     depends_on:
       - appointment
       - notification
@@ -65,9 +65,9 @@ services:
     ports:
      - "8085:8085"
     environment:
-      MONGO_HOST
-      KAFKA_HOST
-      INSTANCE_IP
+     - MONGO_HOST
+     - KAFKA_HOST
+     - INSTANCE_IP
     depends_on:
       - doctor
     networks:
@@ -77,8 +77,8 @@ services:
     container_name: notificationService
     image: book_my_consultation/notificationservice:1.0.0
     environment:
-      KAFKA_HOST
-      INSTANCE_IP
+     - KAFKA_HOST
+     - INSTANCE_IP
     networks:
       - app-tier
 
