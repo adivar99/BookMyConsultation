@@ -30,28 +30,24 @@ public class SesEmailVerificationService {
 
     private SesClient sesClient;
     private final FreeMarkerConfigurer configurer;
-    private String fromEmail = "adivar1999@gmail.com";//needs to be a verified email id
+    private String fromEmail = "";//needs to be a verified email id
     private String accessKey;
     private String secretKey;
-
-    // TODO: Remove keys before submitting
-    // access key: AKIAYCA356BJ73DJMZUM
-    // secret key: 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
 
 //    @PostConstruct
     public void init(String type){
         // When you hit the endpoint to verify the email this needs to be the access key for your AWS account
         // When you hit the endpoint to send an email this value needs to be updated to the Smtp username that you generated
-        accessKey="AKIAYCA356BJ73DJMZUM";
+        accessKey="";
 
 
         // When you hit the endpoint to verify the email this needs to be the secret key for your AWS account
         // When you hit the endpoint to send an email this value needs to be updated to the Smtp password that you generated
-        secretKey="gxoOW82uKii+rSWmYpIhN3md1pP2u5p8Ozj7fqD7";//
+        secretKey="";//
 
         if (type.equals("send")){
-            accessKey="AKIAYCA356BJVGTRGNXZ";
-            secretKey="BIM1+ufUEjbhjangJSwizj6FVzRG6rBWLKs5NucqsRSA";
+            accessKey="";
+            secretKey="";
         }
         StaticCredentialsProvider staticCredentialsProvider = StaticCredentialsProvider
             .create(AwsBasicCredentials.create(accessKey,secretKey));
